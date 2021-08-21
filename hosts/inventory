@@ -1,0 +1,14 @@
+all:
+  vars:                        
+    ansible_connection: ssh    
+    ansible_user: pi
+
+
+nginx:
+  hosts:
+    192.168.2.10:
+
+collector:
+  hosts:
+    192.168.2.10:
+

@@ -1,0 +1,247 @@
+---
+
+- name: Add {{ group }} group on {{ ansible_default_ipv4.address }}
+  group:
+    name: "{{ group }}"
+    state: present
+- name: Create {{ user }} user on {{ ansible_default_ipv4.address }}
+  user:
+    name: "{{ user }}"
+    group: "{{ group }}"
+    createhome: no
+    shell: /bin/bash
+    state: present
+- name: Create {{ base_directory }} directory on {{ ansible_default_ipv4.address }}
+  file:
+    path: "{{ base_directory }}"
+    state: directory
+    mode: 0755
+    owner: "root"
+    group: "root"
+
+- name: Create fibaro directory on {{ ansible_default_ipv4.address }}
+  file:
+    path: "{{ base_directory }}/fibaro"
+    state: directory
+    mode: 0755
+    owner: "{{user}}"
+    group: "{{group}}"
+
+- name: Install JQ
+  apt:
+    name: jq
+    state: present
+
+
+- name: Get ILM Policy
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_ilm
+  changed_when: false
+
+
+- name: Put ILM Policy
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
+    body_format: json
+    body: >-
+      {
+        "policy": {
+          "phases": {
+            "hot": {
+              "actions": {
+                "rollover": {
+                  "max_size": "{{elasticsearch_roll_size}}",
+                  "max_age": "{{elasticsearch_roll_date}}"
+                }
+              }
+            },
+            "delete": {
+              "min_age": "{{elasticsearch_delete_date}}",
+              "actions": {
+                "delete": {}
+              }
+            }
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_ilm.json.{{elasticsearch_index}} is not defined
+    or
+    elastic_ilm.json.{{elasticsearch_index}}.policy.phases.hot.actions.rollover.max_size != "{{elasticsearch_roll_size}}"
+    or
+    elastic_ilm.json.{{elasticsearch_index}}.policy.phases.hot.actions.rollover.max_age != "{{elasticsearch_roll_date}}"
+    or
+    elastic_ilm.json.{{elasticsearch_index}}.policy.phases.delete.min_age != "{{elasticsearch_delete_date}}"
+
+- name: Put Template climate
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index }}"
+    body_format: json
+    body: >-
+      {
+        "index_patterns": ["{{elasticsearch_index}}*"],
+        "template": {
+          "settings": {
+            "number_of_shards": 1,
+            "number_of_replicas":0,
+            "refresh_interval":"60s",
+            "index.lifecycle.name": "{{elasticsearch_index}}",
+            "index.lifecycle.rollover_alias": "{{elasticsearch_index}}-alias"
+          },
+          "mappings": {
+            "properties" : {
+              "@timestamp" : {
+                "type" : "date"
+              },
+              "id" : {
+                "type" : "long"
+              },
+              "name" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              },
+              "type" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              },
+              "room" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              },
+              "roomID" : {
+                "type" : "long"
+              },
+              "value" : {
+                "type" : "float"
+              }
+            }
+          }
+        }
+      }
+
+- name: Put Template power
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_power }}"
+    body_format: json
+    body: >-
+      {
+        "index_patterns": ["{{elasticsearch_index_power}}*"],
+        "template": {
+          "settings": {
+            "number_of_shards": 1,
+            "number_of_replicas":0,
+            "refresh_interval":"60s",
+            "index.lifecycle.name": "{{elasticsearch_index}}",
+            "index.lifecycle.rollover_alias": "{{elasticsearch_index_power}}-alias"
+          },
+          "mappings": {
+            "properties" : {
+              "@timestamp" : {
+                "type" : "date"
+              },
+              "id" : {
+                "type" : "long"
+              },
+              "name" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              },
+              "room" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              },
+              "roomID" : {
+                "type" : "long"
+              },
+              "power" : {
+                "type" : "float"
+              },
+              "energy" : {
+                "type" : "float"
+              }
+            }
+          }
+        }
+      }
+
+- name: Get first index climate
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index }}-000001"
+    return_content: yes
+  failed_when: false
+  register: elastic_index
+  changed_when: false
+
+- name: Create fisrt index climate
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index }}-000001"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{elasticsearch_index}}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index.status == 404
+
+
+- name: Get first index power
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_power }}-000001"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_power
+  changed_when: false
+
+- name: Create fisrt index power
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_power }}-000001"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_power }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_power.status == 404
+
+- name: Configure {{ item }} for fibaro script on {{ ansible_default_ipv4.address }}
+  template:
+    src: templates/{{ item }}.j2
+    dest: "{{ base_directory }}/fibaro/{{ item }}"
+    owner: "{{user}}"
+    group: "{{group}}"
+    mode: 0700
+  with_items:
+    - fibaro_collect.sh
+    - fibaro_zwave_graph.sh
+
+- name: Add crontab entry
+  cron:
+    name: "fibaro_collect"
+    minute: "{{ cronMinute }}"
+    state: "present"
+    user: "{{ user }}"
+    job: "{{ base_directory }}/fibaro/fibaro_collect.sh >> {{ base_directory }}/fibaro/error.log 2>&1"
+
+...

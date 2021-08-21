@@ -1,0 +1,113 @@
+# {{ ansible_managed }}
+#!/bin/sh
+
+
+LOGIN="{{ fibaro_login }}"
+PASS="{{ fibaro_password }}"
+URL="{{ fibaro_url }}"
+ELASTICSEARCH_URL="{{ elasticsearch_url }}"
+CLIMATE_INDEX="{{ elasticsearch_index }}"
+POWER_INDEX="{{ elasticsearch_index_power }}"
+
+now=`date -u +%FT%T.%3NZ`
+indexName=`date -u +%Y-%m`
+
+
+####################
+# get all rooms    #
+####################
+getAllRooms() {
+  rooms=`curl -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
+}
+
+collectClimate() {
+  # Temperature
+  if [ "${type}" = "com.fibaro.temperatureSensor" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"temperature\"}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+
+  # Humidity
+  elif [ "${type}" = "com.fibaro.humiditySensor" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"humidity\"}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+  # Light
+  elif [ "${type}" = "com.fibaro.lightSensor" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"light\"}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+  # uv
+  elif [ "${name}" = "\"uv\"" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"uv\"}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+  fi
+}
+
+collectPower() {
+  power=`echo "${device}" | jq .properties.power`
+  energy=`echo "${device}" | jq .properties.energy`
+
+  if [ ! "${power}" = "null" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"power\":${power},\"energy\":${energy},\"roomID\":${roomID},\"room\":${room}}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+  # Power
+  elif [ "${type}" = "com.fibaro.powerMeter" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"power\":${value},\"roomID\":${roomID},\"room\":${room}}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+  # Energy
+  elif [ "${type}" = "com.fibaro.energyMeter" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"energy\":${value},\"roomID\":${roomID},\"room\":${room}}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
+  fi
+}
+
+#############################
+# iterate over all devices  #
+#############################
+iterateOverAllDevice() {
+  devices=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
+  deviceNumber=`echo "${devices}" | jq length`
+
+  i=0
+  while [ "$i" -lt "${deviceNumber}" ]
+  do
+    device=`echo "${devices}" | jq .[$i]`
+
+    id=`echo "${device}" | jq .id`
+    type=`echo "${device}" | jq -r .type`
+    baseType=`echo "${device}" | jq  .baseType`
+    name=`echo "${device}" | jq  .name`
+    value=`echo "${device}" | jq .properties.value`
+    roomID=`echo "${device}" | jq .roomID`
+
+    # workaround: space produce crash during ES indexation (pb of charset ?)
+    name=`echo "${name}" | sed -e "s/ /_/g"`
+
+    collectClimate
+    collectPower
+
+    i=$(( i + 1 ))
+  done
+}
+
+
+######
+getAllRooms
+iterateOverAllDevice
