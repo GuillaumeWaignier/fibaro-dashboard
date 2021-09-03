@@ -1,0 +1,58 @@
+{
+  "index_patterns": ["{{elasticsearch_index_resources}}*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas":0,
+      "refresh_interval":"60s",
+      "index.lifecycle.name": "{{elasticsearch_index}}",
+      "index.lifecycle.rollover_alias": "{{elasticsearch_index_resources}}-alias"
+    },
+    "mappings": {
+      "properties" : {
+        "@timestamp" : {
+          "type" : "date"
+        },
+        "cpuName" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "type" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "idle" : {
+          "type" : "long"
+        },
+        "nice" : {
+          "type" : "long"
+        },
+        "storage" : {
+          "type" : "long"
+        },
+        "system" : {
+          "type" : "long"
+        },
+        "user" : {
+          "type" : "long"
+        },
+        "memory" : {
+          "properties" : {
+            "buffer" : {
+              "type" : "long"
+            },
+            "cache" : {
+              "type" : "long"
+            },
+            "free" : {
+              "type" : "long"
+            },
+            "used" : {
+              "type" : "long"
+            }
+          }
+        }
+      }
+    }
+  }
+}

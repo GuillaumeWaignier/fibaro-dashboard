@@ -8,6 +8,7 @@ URL="{{ fibaro_url }}"
 ELASTICSEARCH_URL="{{ elasticsearch_url }}"
 CLIMATE_INDEX="{{ elasticsearch_index }}"
 POWER_INDEX="{{ elasticsearch_index_power }}"
+RESOURCES_INDEX="{{ elasticsearch_index_resources }}"
 
 now=`date -u +%FT%T.%3NZ`
 indexName=`date -u +%Y-%m`
@@ -108,6 +109,43 @@ iterateOverAllDevice() {
 }
 
 
+#############################
+# Collect HC3 resources     #
+#############################
+collectHC3Resources() {
+  resources=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/diagnostics`
+
+  memoryFree=`echo ${resources} | jq .memory.free`
+  memoryCache=`echo ${resources} | jq .memory.cache`
+  memoryBuffer=`echo ${resources} | jq .memory.buffers`
+  memoryUsed=`echo ${resources} | jq .memory.used`
+  storage=`echo ${resources} | jq .storage.internal[0].used`
+
+  body=`echo "{\"@timestamp\":\"${now}\",\"memory\":{\"free\":${memoryFree},\"cache\":${memoryCache},\"buffer\":${memoryBuffer},\"used\":${memoryUsed}},\"storage\":${storage}}"`
+  curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${RESOURCES_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+  cpus=`echo ${resources} | jq .cpuLoad`
+  cpuNumber=`echo "${cpus}" | jq length`
+  i=0
+  while [ "$i" -lt "${cpuNumber}" ]
+  do
+    cpu=`echo "${cpus}" | jq .[$i]`
+
+    name=`echo ${cpu} | jq .name`
+    user=`echo ${cpu} | jq -r .user`
+    nice=`echo ${cpu} | jq -r .nice`
+    system=`echo ${cpu} | jq -r .system`
+    idle=`echo ${cpu} | jq -r .idle`
+
+    body=`echo "{\"@timestamp\":\"${now}\",\"cpuName\":${name},\"user\":${user},\"nice\":${nice},\"system\":${system},\"idle\":${idle}}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${RESOURCES_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+    i=$(( i + 1 ))
+  done
+}
+
+
 ######
 getAllRooms
 iterateOverAllDevice
+collectHC3Resources

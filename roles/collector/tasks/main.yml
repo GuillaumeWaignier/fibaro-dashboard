@@ -73,6 +73,12 @@
     body_format: json
     body: "{{ lookup('template', 'template_power.json.j2') }}"
 
+- name: Put Template resources
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_resources }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_resources.json.j2') }}"
 
 - name: Get first index climate
   uri:
@@ -127,6 +133,32 @@
   when: >-
     elastic_index_power.status == 404
 
+
+- name: Get first index resources
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_resources }}-000001"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_resources
+  changed_when: false
+
+- name: Create fisrt index resources
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_resources }}-000001"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_resources }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_resources.status == 404
 
 #- name: Upload kibana dashboard
 #  uri:
