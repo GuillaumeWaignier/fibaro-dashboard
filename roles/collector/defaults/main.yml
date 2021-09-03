@@ -17,6 +17,9 @@ elasticsearch_roll_size: "100mb"
 elasticsearch_roll_date: "90d"
 elasticsearch_delete_date: "10951d"
 
+kibana_url: "http://localhost:5601"
+
+
 neo4j_url: "http://localhost:7474"
 neo4j_user: "neo4j"
 neo4j_password: "m"

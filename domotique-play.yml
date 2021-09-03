@@ -13,6 +13,7 @@
     - cronMinute: "*/5"
     - fibaro_login: "stats"
     - fibaro_url: "http://192.168.2.13"
+    - kibana_url: "http://localhost:5601"
 
   vars_prompt:
     - name: fibaro_password

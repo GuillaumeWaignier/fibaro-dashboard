@@ -48,27 +48,7 @@
     method: PUT
     url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
     body_format: json
-    body: >-
-      {
-        "policy": {
-          "phases": {
-            "hot": {
-              "actions": {
-                "rollover": {
-                  "max_size": "{{elasticsearch_roll_size}}",
-                  "max_age": "{{elasticsearch_roll_date}}"
-                }
-              }
-            },
-            "delete": {
-              "min_age": "{{elasticsearch_delete_date}}",
-              "actions": {
-                "delete": {}
-              }
-            }
-          }
-        }
-      }
+    body: "{{ lookup('template', 'ilm_policy.json.j2') }}"
   changed_when: true
   when: >-
     elastic_ilm.json.{{elasticsearch_index}} is not defined
@@ -84,93 +64,15 @@
     method: PUT
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index }}"
     body_format: json
-    body: >-
-      {
-        "index_patterns": ["{{elasticsearch_index}}*"],
-        "template": {
-          "settings": {
-            "number_of_shards": 1,
-            "number_of_replicas":0,
-            "refresh_interval":"60s",
-            "index.lifecycle.name": "{{elasticsearch_index}}",
-            "index.lifecycle.rollover_alias": "{{elasticsearch_index}}-alias"
-          },
-          "mappings": {
-            "properties" : {
-              "@timestamp" : {
-                "type" : "date"
-              },
-              "id" : {
-                "type" : "long"
-              },
-              "name" : {
-                "type" : "keyword",
-                "ignore_above" : 256
-              },
-              "type" : {
-                "type" : "keyword",
-                "ignore_above" : 256
-              },
-              "room" : {
-                "type" : "keyword",
-                "ignore_above" : 256
-              },
-              "roomID" : {
-                "type" : "long"
-              },
-              "value" : {
-                "type" : "float"
-              }
-            }
-          }
-        }
-      }
+    body: "{{ lookup('template', 'template_climate.json.j2') }}"
 
 - name: Put Template power
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_power }}"
     body_format: json
-    body: >-
-      {
-        "index_patterns": ["{{elasticsearch_index_power}}*"],
-        "template": {
-          "settings": {
-            "number_of_shards": 1,
-            "number_of_replicas":0,
-            "refresh_interval":"60s",
-            "index.lifecycle.name": "{{elasticsearch_index}}",
-            "index.lifecycle.rollover_alias": "{{elasticsearch_index_power}}-alias"
-          },
-          "mappings": {
-            "properties" : {
-              "@timestamp" : {
-                "type" : "date"
-              },
-              "id" : {
-                "type" : "long"
-              },
-              "name" : {
-                "type" : "keyword",
-                "ignore_above" : 256
-              },
-              "room" : {
-                "type" : "keyword",
-                "ignore_above" : 256
-              },
-              "roomID" : {
-                "type" : "long"
-              },
-              "power" : {
-                "type" : "float"
-              },
-              "energy" : {
-                "type" : "float"
-              }
-            }
-          }
-        }
-      }
+    body: "{{ lookup('template', 'template_power.json.j2') }}"
+
 
 - name: Get first index climate
   uri:
@@ -224,6 +126,18 @@
   changed_when: true
   when: >-
     elastic_index_power.status == 404
+
+
+#- name: Upload kibana dashboard
+#  uri:
+#    method: POST
+#    url: "{{ kibana_url }}/api/saved_objects/_import"
+#    body_format: form-multipart
+#    headers:
+#      kbn-xsrf: true
+#    body: "{{ lookup('template', 'kibana.ndjson.j2') }}"
+#  changed_when: false
+
 
 - name: Configure {{ item }} for fibaro script on {{ ansible_default_ipv4.address }}
   template:
