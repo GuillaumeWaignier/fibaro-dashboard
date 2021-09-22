@@ -160,16 +160,20 @@
   when: >-
     elastic_index_resources.status == 404
 
-#- name: Upload kibana dashboard
-#  uri:
-#    method: POST
-#    url: "{{ kibana_url }}/api/saved_objects/_import"
-#    body_format: form-multipart
-#    headers:
-#      kbn-xsrf: true
-#    body: "{{ lookup('template', 'kibana.ndjson.j2') }}"
-#  changed_when: false
 
+- name: Upload kibana dashboard
+  uri:
+    method: POST
+    url: "{{ kibana_url }}/api/saved_objects/_import"
+    body_format: form-multipart
+    headers:
+      kbn-xsrf: "true"
+    body:
+      file:
+        content: "{{ lookup('template', './kibana.ndjson.j2') }}"
+        filename: kibana.ndjson
+        mime_type: text/plain
+  changed_when: false
 
 - name: Configure {{ item }} for fibaro script on {{ ansible_default_ipv4.address }}
   template:
