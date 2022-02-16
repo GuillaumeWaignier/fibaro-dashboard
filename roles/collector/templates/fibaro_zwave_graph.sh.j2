@@ -62,8 +62,9 @@ function create_nodes {
        zwaveVersionMinor=`echo "${info}" | cut -d, -f3`
        zwaveVersion=`echo "${zwaveVersionMajor}.${zwaveVersionMinor}"`
        wakeupTime=`echo "${device}" | jq -r .properties.wakeUpTime`
+       securityLevel=`echo "${device}" | jq -r .properties.securityLevel`
 
-       JSON="{\"statements\":[{\"statement\":\"CREATE (:${room} { Name:\\\"${name}\\\",wakeupTime:${wakeupTime},zwaveVersion:toFloat(${zwaveVersion}),type:${type},version:toFloat(${version}),battery:${battery},zwaveCompany:\\\"${zwaveCompany}\\\",Id:$id})\"}]}"
+       JSON="{\"statements\":[{\"statement\":\"CREATE (:${room} { Name:\\\"${name}\\\",securityLevel:\\\"${securityLevel}\\\",wakeupTime:${wakeupTime},zwaveVersion:toFloat(${zwaveVersion}),type:${type},version:toFloat(${version}),battery:${battery},zwaveCompany:\\\"${zwaveCompany}\\\",Id:$id})\"}]}"
        RES=`curl -XPOST -s -u "${NEO4J_USER}:${NEO4J_PASSWORD}" -H "Content-Type:application/json;charset=UTF-8" ${NEO4J_URL}/db/${NEO4J_DB:-neo4j}/tx/commit -d "${JSON}"`
        displayNeo4jResult "${RES}" "${JSON}"
     fi
