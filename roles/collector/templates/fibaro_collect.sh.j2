@@ -44,6 +44,14 @@ collectClimate() {
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"light\"}"`
     curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
 
+  # Wind
+  elif [ "${type}" = "com.fibaro.windSensor" ]
+  then
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"wind\"}"`
+    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+
   # uv
   elif [ "${name}" = "\"uv\"" ]
   then
