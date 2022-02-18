@@ -59,6 +59,34 @@
     or
     elastic_ilm.json.{{elasticsearch_index}}.policy.phases.delete.min_age != "{{elasticsearch_delete_date}}"
 
+
+- name: Get ILM Policy for event
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index_events }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_ilm_event
+  changed_when: false
+
+
+- name: Put ILM Policy for event
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index_events }}"
+    body_format: json
+    body: "{{ lookup('template', 'event_ilm_policy.json.j2') }}"
+  changed_when: true
+  when: >-
+    elastic_ilm.json.{{elasticsearch_index_events}} is not defined
+    or
+    elastic_ilm.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_size != "{{elasticsearch_events_roll_size}}"
+    or
+    elastic_ilm.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_age != "{{elasticsearch_events_roll_date}}"
+    or
+    elastic_ilm.json.{{elasticsearch_index_events}}.policy.phases.delete.min_age != "{{elasticsearch_events_delete_date}}"
+
+
 - name: Put Template climate
   uri:
     method: PUT
@@ -79,6 +107,13 @@
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_resources }}"
     body_format: json
     body: "{{ lookup('template', 'template_resources.json.j2') }}"
+
+- name: Put Template for events
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_events }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_event.json.j2') }}"
 
 - name: Get first index climate
   uri:
@@ -161,6 +196,33 @@
     elastic_index_resources.status == 404
 
 
+- name: Get first index event
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_events }}-000001"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_event
+  changed_when: false
+
+- name: Create fisrt index event
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_events }}-000001"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_events }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_event.status == 404
+
+
 - name: Upload kibana dashboard
   uri:
     method: POST
@@ -185,13 +247,22 @@
   with_items:
     - fibaro_collect.sh
     - fibaro_zwave_graph.sh
+    - fibaro_collect_events.sh
 
-- name: Add crontab entry
+- name: Add crontab entry for collector
   cron:
     name: "fibaro_collect"
     minute: "{{ cronMinute }}"
     state: "present"
     user: "{{ user }}"
     job: "{{ base_directory }}/fibaro/fibaro_collect.sh >> {{ base_directory }}/fibaro/error.log 2>&1"
+
+- name: Add crontab entry for event collector
+  cron:
+    name: "fibaro_collect_event"
+    minute: "{{ cronMinuteEvent }}"
+    state: "present"
+    user: "{{ user }}"
+    job: "{{ base_directory }}/fibaro/fibaro_collect_events.sh >> {{ base_directory }}/fibaro/error.log 2>&1"
 
 ...

@@ -1,0 +1,78 @@
+{
+  "index_patterns": ["{{elasticsearch_index_events}}*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas":0,
+      "refresh_interval":"60s",
+      "index.lifecycle.name": "{{elasticsearch_index_events}}",
+      "index.lifecycle.rollover_alias": "{{elasticsearch_index_events}}-alias"
+    },
+    "mappings": {
+      "properties" : {
+        "data" : {
+          "properties" : {
+            "id" : {
+              "type" : "long"
+            },
+            "newValue" : {
+              "type" : "float"
+            },
+            "oldValue" : {
+              "type" : "float"
+            },
+            "property" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            },
+            "actionName" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            },
+            "args" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "id" : {
+          "type" : "long"
+        },
+        "objects" : {
+          "properties" : {
+            "id" : {
+              "type" : "long"
+            },
+            "type" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "sourceId" : {
+          "type" : "long"
+        },
+        "sourceType" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "type" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "name" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "room" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "timestamp" : {
+          "type" : "date",
+          "format" : "epoch_second"
+        }
+      }
+    }
+  }
+}

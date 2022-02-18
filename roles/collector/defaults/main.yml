@@ -8,15 +8,21 @@ fibaro_login: a
 fibaro_password: b
 fibaro_url: "http://localhost"
 
-cronMinute: 5
+cronMinute: "*/5"
+cronMinuteEvent: "*/2"
 
 elasticsearch_url: "http://localhost:9200"
 elasticsearch_index: "hc3_fibaro_climate"
 elasticsearch_index_power: "hc3_fibaro_power"
 elasticsearch_index_resources: "hc3_fibaro_resources"
+elasticsearch_index_events: "hc3_fibaro_events"
 elasticsearch_roll_size: "100mb"
 elasticsearch_roll_date: "90d"
 elasticsearch_delete_date: "10951d"
+
+elasticsearch_events_roll_size: "100mb"
+elasticsearch_events_roll_date: "90d"
+elasticsearch_events_delete_date: "300d"
 
 kibana_url: "http://localhost:5601"
 
