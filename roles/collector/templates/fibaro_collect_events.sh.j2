@@ -135,9 +135,9 @@ iterateOverAllEvents() {
 
   if [ -z "${LAST_DATE}" ]
   then
-    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history"`
+    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?numberOfRecords=200"`
   else
-    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?from=${LAST_DATE}"`
+    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?from=${LAST_DATE}&numberOfRecords=200"`
   fi
 
   eventsNumber=`echo "${events}" | jq length`
