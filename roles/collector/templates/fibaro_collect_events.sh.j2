@@ -9,6 +9,7 @@ ELASTICSEARCH_URL="{{ elasticsearch_url }}"
 EVENTS_INDEX="{{ elasticsearch_index_events }}"
 
 FILE_CACHED_DEVICE="{{ base_directory }}/fibaro/devices.csv"
+FILE_CACHED_SCENE="{{ base_directory }}/fibaro/scenes.csv"
 
 ####################
 # get all rooms    #
@@ -50,27 +51,82 @@ cacheAllDevice() {
   done
 }
 
+#############################
+# Cache all scenes          #
+#############################
+cacheAllScene() {
+
+  echo "Cache all scenes"
+
+  scenes=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/scenes`
+  sceneNumber=`echo "${scenes}" | jq length`
+
+  rm "${FILE_CACHED_SCENE}"
+
+  i=0
+  while [ "$i" -lt "${sceneNumber}" ]
+  do
+    scene=`echo "${scenes}" | jq .[$i]`
+
+    id=`echo "${scene}" | jq .id`
+    name=`echo "${scene}" | jq -r .name`
+    # workaround: space produce crash during ES indexation (pb of charset ?)
+    name=`echo "${name}" | sed -e "s/ /_/g"`
+
+    echo "${id};${name}" >> "${FILE_CACHED_SCENE}"
+
+    i=$(( i + 1 ))
+  done
+}
+
 #####################################
 # enriched data with room and name  #
 #####################################
 enrichEvent() {
-  id=`echo "${event}" | jq  .data.id`
 
-  if [ ! -z "${id}" ]
+  eventType=`echo "${event}" | jq -r ".objects[0].type"`
+
+  if [ "${eventType}" = "device" ]
   then
+    id=`echo "${event}" | jq  .data.id`
     metainfo=`cat "${FILE_CACHED_DEVICE}" | grep "^${id};"`
     if [ ! -z "${metainfo}" ]
     then
       room=`echo "${metainfo}" | cut -d';' -f3`
       name=`echo "${metainfo}" | cut -d';' -f2`
-      metainfojson="\"name\":\"${name}\",\"room\":\"${room}\",\"sourceType\""
+      deviceType=`echo "${metainfo}" | cut -d';' -f4`
+      metainfojson="\"name\":\"${name}\",\"room\":\"${room}\",\"deviceType\":\"${deviceType}\",\"sourceType\""
 
       event=`echo "${event}" | sed -e "s/\"sourceType\"/${metainfojson}/g"`
+    fi
+  elif [ "${eventType}" = "scene" ]
+  then
+    id=`echo "${event}" | jq  .data.id`
+    metainfo=`cat "${FILE_CACHED_SCENE}" | grep "^${id};"`
+    if [ ! -z "${metainfo}" ]
+    then
+      name=`echo "${metainfo}" | cut -d';' -f2`
+      metainfojson="\"name\":\"${name}\",\"sourceType\""
+      event=`echo "${event}" | sed -e "s/\"sourceType\"/${metainfojson}/g"`
+    fi
+  fi
 
+  sourceType=`echo "${event}" | jq -r ".sourceType"`
+  if [ "${sourceType}" = "device" ]
+  then
+    id=`echo "${event}" | jq  .sourceId`
+    metainfo=`cat "${FILE_CACHED_DEVICE}" | grep "^${id};"`
+    if [ ! -z "${metainfo}" ]
+    then
+      room=`echo "${metainfo}" | cut -d';' -f3`
+      name=`echo "${metainfo}" | cut -d';' -f2`
+      deviceType=`echo "${metainfo}" | cut -d';' -f4`
+      metainfojson="\"sourceName\":\"${name}\",\"room\":\"${room}\",\"deviceType\":\"${deviceType}\",\"sourceType\""
+
+      event=`echo "${event}" | sed -e "s/\"sourceType\"/${metainfojson}/g"`
     fi
   fi
 }
-
 
 #############################
 # iterate over all events  #
@@ -127,5 +183,11 @@ if [ ! -f "${FILE_CACHED_DEVICE}" ]
 then
   cacheAllDevice
 fi
+
+if [ ! -f "${FILE_CACHED_SCENE}" ]
+then
+  cacheAllScene
+fi
+
 getLastEventID
 iterateOverAllEvents

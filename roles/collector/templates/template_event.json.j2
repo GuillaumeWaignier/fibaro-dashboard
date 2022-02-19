@@ -13,13 +13,36 @@
         "data" : {
           "properties" : {
             "id" : {
-              "type" : "long"
+              "type" : "short"
+            },
+            "icon" : {
+              "type" : "object",
+              "enabled": false,
+            },
+            "keyAttribute" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            },
+            "keyId" : {
+              "type" : "short",
             },
             "newValue" : {
-              "type" : "float"
+              "type" : "keyword",
+              "fields": {
+                "numeric": {
+                  "type":  "float",
+                  "ignore_malformed": true
+                }
+              }
             },
             "oldValue" : {
-              "type" : "float"
+              "type" : "keyword",
+              "fields": {
+                "numeric": {
+                  "type":  "float",
+                  "ignore_malformed": true
+                }
+              }
             },
             "property" : {
               "type" : "keyword",
@@ -32,16 +55,31 @@
             "args" : {
               "type" : "keyword",
               "ignore_above" : 256
+            },
+            "type" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            },
+            "trigger" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            },
+            "subid" : {
+              "type" : "short",
+            },
+            "startTime" : {
+              "type" : "date",
+              "format" : "epoch_second"
             }
           }
         },
         "id" : {
-          "type" : "long"
+          "type" : "unsigned_long"
         },
         "objects" : {
           "properties" : {
             "id" : {
-              "type" : "long"
+              "type" : "short"
             },
             "type" : {
               "type" : "keyword",
@@ -50,9 +88,17 @@
           }
         },
         "sourceId" : {
-          "type" : "long"
+          "type" : "short"
         },
         "sourceType" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "sourceName" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "deviceType" : {
           "type" : "keyword",
           "ignore_above" : 256
         },
