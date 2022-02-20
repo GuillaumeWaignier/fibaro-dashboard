@@ -45,11 +45,39 @@ cacheAllDevice() {
     name=`echo "${name}" | sed -e "s/ /_/g"`
     room=`echo "${rooms}" | jq -r "map(select(.id == ${roomID}))[].name"`
 
+    # map the device type
+    case "${type}" in
+      ("com.fibaro.humiditySensor")     type="humiditySensor" ;;
+      ("com.fibaro.temperatureSensor")  type="temperatureSensor" ;;
+      ("com.fibaro.windSensor")         type="windSensor" ;;
+      ("com.fibaro.philipsHueLight")    type="philipsHueLight" ;;
+      ("com.fibaro.lightSensor")        type="lightSensor" ;;
+      ("com.fibaro.FGWP102")            type="wallPlug" ;;
+      ("com.fibaro.binarySensor")       type="binarySensor" ;;
+      ("com.fibaro.motionSensor" | "com.fibaro.FGMS001v2") type="motionSensor" ;;
+      ("com.fibaro.binarySwitch" | "com.fibaro.FGWDS221")  type="binarySwitch" ;;
+      ("com.fibaro.FGDW002")            type="doorSensor" ;;
+      ("com.fibaro.FGKF601")            type="keyFob" ;;
+      ("com.fibaro.multilevelSensor")   type="multilevelSensor" ;;
+      ("com.fibaro.FGWR111" | "com.fibaro.FGR223" )   type="blind" ;;
+      ("com.fibaro.hvacSystemHeat")     type="hvacSystemHeat" ;;
+      ("com.fibaro.windowSensor")       type="windowSensor" ;;
+      ("com.fibaro.electricMeter")      type="electricMeter" ;;
+      ("com.fibaro.powerMeter")         type="powerMeter" ;;
+      ("com.fibaro.energyMeter")        type="energyMeter" ;;
+      ("com.fibaro.FGCD001")            type="coSensor" ;;
+      ("com.fibaro.FGSS001")            type="smokeSensor" ;;
+      ("com.fibaro.FGWD111")            type="walliDimmer" ;;
+      ("com.fibaro.floodSensor")        type="floodSensor" ;;
+      ("com.fibaro.heatDetector")       type="heatDetector" ;;
+    esac
+
     echo "${id};${name};${room};${type}" >> "${FILE_CACHED_DEVICE}"
 
     i=$(( i + 1 ))
   done
 }
+
 
 #############################
 # Cache all scenes          #
@@ -135,9 +163,9 @@ iterateOverAllEvents() {
 
   if [ -z "${LAST_DATE}" ]
   then
-    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?numberOfRecords=200"`
+    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?numberOfRecords=500"`
   else
-    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?from=${LAST_DATE}&numberOfRecords=200"`
+    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?from=${LAST_DATE}&numberOfRecords=500"`
   fi
 
   eventsNumber=`echo "${events}" | jq length`
@@ -173,6 +201,7 @@ getLastEventID() {
     hit=`echo "${hits}" | jq .[$i]`
     LAST_DATE=`echo "${hit}" | jq ._source.timestamp`
     i=$(( i + 1 ))
+    LAST_DATE=$(( LAST_DATE + 1 ))
   done
 }
 
