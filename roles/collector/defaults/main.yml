@@ -17,7 +17,7 @@ elasticsearch_index_power: "hc3_fibaro_power"
 elasticsearch_index_resources: "hc3_fibaro_resources"
 elasticsearch_index_events: "hc3_fibaro_events"
 elasticsearch_roll_size: "100mb"
-elasticsearch_roll_date: "90d"
+elasticsearch_roll_date: "365d"
 elasticsearch_delete_date: "10951d"
 
 elasticsearch_events_roll_size: "100mb"
