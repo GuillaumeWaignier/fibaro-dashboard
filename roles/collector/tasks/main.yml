@@ -78,13 +78,13 @@
     body: "{{ lookup('template', 'event_ilm_policy.json.j2') }}"
   changed_when: true
   when: >-
-    elastic_ilm.json.{{elasticsearch_index_events}} is not defined
+    elastic_ilm_event.json.{{elasticsearch_index_events}} is not defined
     or
-    elastic_ilm.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_size != "{{elasticsearch_events_roll_size}}"
+    elastic_ilm_event.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_size != "{{elasticsearch_events_roll_size}}"
     or
-    elastic_ilm.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_age != "{{elasticsearch_events_roll_date}}"
+    elastic_ilm_event.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_age != "{{elasticsearch_events_roll_date}}"
     or
-    elastic_ilm.json.{{elasticsearch_index_events}}.policy.phases.delete.min_age != "{{elasticsearch_events_delete_date}}"
+    elastic_ilm_event.json.{{elasticsearch_index_events}}.policy.phases.delete.min_age != "{{elasticsearch_events_delete_date}}"
 
 
 - name: Put Template climate
