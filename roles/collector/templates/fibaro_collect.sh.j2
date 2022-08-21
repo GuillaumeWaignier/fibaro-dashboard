@@ -18,7 +18,7 @@ indexName=`date -u +%Y-%m`
 # get all rooms    #
 ####################
 getAllRooms() {
-  rooms=`curl -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
+  rooms=`curl -k -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
 }
 
 collectClimate() {
@@ -27,7 +27,7 @@ collectClimate() {
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"temperature\"}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
 
 
   # Humidity
@@ -35,21 +35,21 @@ collectClimate() {
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"humidity\"}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
 
   # Light
   elif [ "${type}" = "com.fibaro.lightSensor" ]
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"light\"}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
 
   # Wind
   elif [ "${type}" = "com.fibaro.windSensor" ]
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"wind\"}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
 
 
   # uv
@@ -57,7 +57,7 @@ collectClimate() {
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"value\":${value},\"roomID\":${roomID},\"room\":${room},\"type\":\"uv\"}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${CLIMATE_INDEX}-alias/_doc -d ${body} >> /dev/null
   fi
 }
 
@@ -69,21 +69,21 @@ collectPower() {
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"power\":${power},\"energy\":${energy},\"roomID\":${roomID},\"room\":${room}}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
 
   # Power
   elif [ "${type}" = "com.fibaro.powerMeter" ]
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"power\":${value},\"roomID\":${roomID},\"room\":${room}}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
 
   # Energy
   elif [ "${type}" = "com.fibaro.energyMeter" ]
   then
     room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
     body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"energy\":${value},\"roomID\":${roomID},\"room\":${room}}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${POWER_INDEX}-alias/_doc -d ${body} >> /dev/null
   fi
 }
 
@@ -91,7 +91,7 @@ collectPower() {
 # iterate over all devices  #
 #############################
 iterateOverAllDevice() {
-  devices=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
+  devices=`curl -k -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
   deviceNumber=`echo "${devices}" | jq length`
 
   i=0
@@ -121,7 +121,7 @@ iterateOverAllDevice() {
 # Collect HC3 resources     #
 #############################
 collectHC3Resources() {
-  resources=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/diagnostics`
+  resources=`curl -k -s -u ${LOGIN}:${PASS} ${URL}/api/diagnostics`
 
   memoryFree=`echo ${resources} | jq .memory.free`
   memoryCache=`echo ${resources} | jq .memory.cache`
@@ -130,7 +130,7 @@ collectHC3Resources() {
   storage=`echo ${resources} | jq .storage.internal[0].used`
 
   body=`echo "{\"@timestamp\":\"${now}\",\"memory\":{\"free\":${memoryFree},\"cache\":${memoryCache},\"buffer\":${memoryBuffer},\"used\":${memoryUsed}},\"storage\":${storage}}"`
-  curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${RESOURCES_INDEX}-alias/_doc -d ${body} >> /dev/null
+  curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${RESOURCES_INDEX}-alias/_doc -d ${body} >> /dev/null
 
   cpus=`echo ${resources} | jq .cpuLoad`
   cpuNumber=`echo "${cpus}" | jq length`
@@ -146,7 +146,7 @@ collectHC3Resources() {
     idle=`echo ${cpu} | jq -r .idle`
 
     body=`echo "{\"@timestamp\":\"${now}\",\"cpuName\":${name},\"user\":${user},\"nice\":${nice},\"system\":${system},\"idle\":${idle}}"`
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${RESOURCES_INDEX}-alias/_doc -d ${body} >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${RESOURCES_INDEX}-alias/_doc -d ${body} >> /dev/null
 
     i=$(( i + 1 ))
   done

@@ -114,8 +114,8 @@ function create_links {
 
 
 clear_neo4j
-rooms=`curl -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
-devices=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
+rooms=`curl -k -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
+devices=`curl -k -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
 deviceNumber=`echo "${devices}" | jq length`
 create_box
 create_nodes

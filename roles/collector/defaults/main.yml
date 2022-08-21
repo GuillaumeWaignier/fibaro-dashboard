@@ -12,6 +12,8 @@ cronMinute: "*/5"
 cronMinuteEvent: "*/2"
 
 elasticsearch_url: "http://localhost:9200"
+elasticsearch_login: "elastic"
+elasticsearch_password: "b"
 elasticsearch_index: "hc3_fibaro_climate"
 elasticsearch_index_power: "hc3_fibaro_power"
 elasticsearch_index_resources: "hc3_fibaro_resources"

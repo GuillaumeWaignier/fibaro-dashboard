@@ -37,6 +37,9 @@
   uri:
     method: GET
     url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username : "{{ elasticsearch_login }}"
     return_content: yes
   failed_when: false
   register: elastic_ilm
@@ -49,6 +52,9 @@
     url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
     body_format: json
     body: "{{ lookup('template', 'ilm_policy.json.j2') }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
   changed_when: true
   when: >-
     elastic_ilm.json.{{elasticsearch_index}} is not defined
@@ -64,6 +70,9 @@
   uri:
     method: GET
     url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index_events }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{ elasticsearch_login }}"
     return_content: yes
   failed_when: false
   register: elastic_ilm_event
@@ -74,6 +83,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index_events }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: "{{ lookup('template', 'event_ilm_policy.json.j2') }}"
   changed_when: true
@@ -91,6 +103,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: "{{ lookup('template', 'template_climate.json.j2') }}"
 
@@ -98,6 +113,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_power }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: "{{ lookup('template', 'template_power.json.j2') }}"
 
@@ -105,6 +123,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_resources }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: "{{ lookup('template', 'template_resources.json.j2') }}"
 
@@ -112,6 +133,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_events }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: "{{ lookup('template', 'template_event.json.j2') }}"
 
@@ -119,6 +143,9 @@
   uri:
     method: GET
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     return_content: yes
   failed_when: false
   register: elastic_index
@@ -128,6 +155,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: >-
       {
@@ -146,6 +176,9 @@
   uri:
     method: GET
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index_power }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     return_content: yes
   failed_when: false
   register: elastic_index_power
@@ -155,6 +188,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index_power }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: >-
       {
@@ -173,6 +209,9 @@
   uri:
     method: GET
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index_resources }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     return_content: yes
   failed_when: false
   register: elastic_index_resources
@@ -182,6 +221,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index_resources }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: >-
       {
@@ -200,6 +242,9 @@
   uri:
     method: GET
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index_events }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     return_content: yes
   failed_when: false
   register: elastic_index_event
@@ -209,6 +254,9 @@
   uri:
     method: PUT
     url: "{{ elasticsearch_url }}/{{ elasticsearch_index_events }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
     body_format: json
     body: >-
       {
@@ -227,6 +275,10 @@
   uri:
     method: POST
     url: "{{ kibana_url }}/api/saved_objects/_import"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    force_basic_auth: yes
     body_format: form-multipart
     headers:
       kbn-xsrf: "true"

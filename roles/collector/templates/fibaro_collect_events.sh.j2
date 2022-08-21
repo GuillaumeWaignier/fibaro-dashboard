@@ -15,7 +15,7 @@ FILE_CACHED_SCENE="{{ base_directory }}/fibaro/scenes.csv"
 # get all rooms    #
 ####################
 getAllRooms() {
-  rooms=`curl -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
+  rooms=`curl -k -H "Accept: application/json" -s -u ${LOGIN}:${PASS} ${URL}/api/rooms`
 }
 
 #############################
@@ -27,7 +27,7 @@ cacheAllDevice() {
 
   getAllRooms
 
-  devices=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
+  devices=`curl -k -s -u ${LOGIN}:${PASS} ${URL}/api/devices`
   deviceNumber=`echo "${devices}" | jq length`
 
   rm "${FILE_CACHED_DEVICE}"
@@ -86,7 +86,7 @@ cacheAllScene() {
 
   echo "Cache all scenes"
 
-  scenes=`curl -s -u ${LOGIN}:${PASS} ${URL}/api/scenes`
+  scenes=`curl -k -s -u ${LOGIN}:${PASS} ${URL}/api/scenes`
   sceneNumber=`echo "${scenes}" | jq length`
 
   rm "${FILE_CACHED_SCENE}"
@@ -163,9 +163,9 @@ iterateOverAllEvents() {
 
   if [ -z "${LAST_DATE}" ]
   then
-    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?numberOfRecords=500"`
+    events=`curl -k -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?numberOfRecords=500"`
   else
-    events=`curl -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?from=${LAST_DATE}&numberOfRecords=500"`
+    events=`curl -k -s -u ${LOGIN}:${PASS} "${URL}/api/events/history?from=${LAST_DATE}&numberOfRecords=500"`
   fi
 
   eventsNumber=`echo "${events}" | jq length`
@@ -177,7 +177,7 @@ iterateOverAllEvents() {
 
     enrichEvent
 
-    curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${EVENTS_INDEX}-alias/_doc -d "${event}" >> /dev/null
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${EVENTS_INDEX}-alias/_doc -d "${event}" >> /dev/null
 
     i=$(( i + 1 ))
   done
@@ -190,7 +190,7 @@ getLastEventID() {
   LAST_DATE=
 
   body='{"size":1,"sort":[{"timestamp": {"order": "desc"}}],"_source": "timestamp"}'
-  res=`curl -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${EVENTS_INDEX}-alias/_search -d "${body}"`
+  res=`curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${EVENTS_INDEX}-alias/_search -d "${body}"`
 
   hits=`echo "${res}" | jq ".hits.hits"`
   hitsNumber=`echo "${hits}" | jq length`

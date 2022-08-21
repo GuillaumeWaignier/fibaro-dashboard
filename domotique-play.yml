@@ -12,13 +12,15 @@
   vars:
     - cronMinute: "*/5"
     - fibaro_login: "stats"
-    - fibaro_url: "http://192.168.2.13"
-    - kibana_url: "http://localhost:5601"
+    - fibaro_url: "https://192.168.2.13"
+    - kibana_url: "https://localhost:5601"
+    - elasticsearch_url: "https://localhost:9200"
 
   vars_prompt:
     - name: fibaro_password
       prompt: fibaro password
     - name: neo4j_password
       prompt: Neo4j Password
-
+    - name: elasticsearch_password
+      prompt: elasticsearch Password
 ...
