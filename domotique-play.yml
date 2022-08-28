@@ -10,11 +10,19 @@
   - role: collector
     tags: collector
   vars:
+    - base_directory: "/data/elk"
     - cronMinute: "*/5"
     - fibaro_login: "stats"
     - fibaro_url: "https://192.168.2.13"
     - kibana_url: "https://localhost:5601"
     - elasticsearch_url: "https://localhost:9200"
+    - elasticsearch_roll_size: "500mb"
+    - elasticsearch_roll_date: "365d"
+    - elasticsearch_delete_date: "10951d"
+    - elasticsearch_events_roll_size: "500mb"
+    - elasticsearch_events_roll_date: "365d"
+    - elasticsearch_events_delete_date: "10951d"
+
 
   vars_prompt:
     - name: fibaro_password
