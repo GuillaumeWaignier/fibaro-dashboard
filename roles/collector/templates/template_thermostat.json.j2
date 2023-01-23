@@ -1,0 +1,44 @@
+{
+  "index_patterns": ["{{elasticsearch_index_thermostat}}*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas":0,
+      "refresh_interval":"60s",
+      "index.lifecycle.name": "{{elasticsearch_index}}",
+      "index.lifecycle.rollover_alias": "{{elasticsearch_index_thermostat}}-alias"
+    },
+    "mappings": {
+      "properties" : {
+        "@timestamp" : {
+          "type" : "date"
+        },
+        "id" : {
+          "type" : "long"
+        },
+        "name" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "status" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "mode" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "room" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "roomID" : {
+          "type" : "long"
+        },
+        "temperature" : {
+          "type" : "float"
+        }
+      }
+    }
+  }
+}

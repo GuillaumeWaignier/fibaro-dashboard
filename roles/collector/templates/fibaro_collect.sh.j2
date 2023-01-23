@@ -9,6 +9,7 @@ ELASTICSEARCH_URL="{{ elasticsearch_url }}"
 CLIMATE_INDEX="{{ elasticsearch_index }}"
 POWER_INDEX="{{ elasticsearch_index_power }}"
 RESOURCES_INDEX="{{ elasticsearch_index_resources }}"
+THERMOSTAT_INDEX="{{ elasticsearch_index_thermostat }}"
 
 now=`date -u +%FT%T.%3NZ`
 indexName=`date -u +%Y-%m`
@@ -87,6 +88,21 @@ collectPower() {
   fi
 }
 
+collectThermostat() {
+  if [ "${baseType}" = "com.fibaro.hvacSystem" ]
+  then
+
+    heatingThermostatSetpoint=`echo "${device}" | jq .properties.heatingThermostatSetpoint`
+    log=`echo "${device}" | jq .properties.log`
+    thermostatMode=`echo "${device}" | jq .properties.thermostatMode`
+
+    room=`echo "${rooms}" | jq "map(select(.id == ${roomID}))[].name"`
+    body=`echo "{\"@timestamp\":\"${now}\",\"id\":${id},\"name\":${name},\"status\":${log},\"mode\":${thermostatMode},\"temperature\":${heatingThermostatSetpoint},\"roomID\":${roomID},\"room\":${room}}"`
+    curl -k -u {{ elasticsearch_login }}:{{ elasticsearch_password }} -s -H "Accept: application/json" -H "Content-Type: application/json" -XPOST ${ELASTICSEARCH_URL}/${THERMOSTAT_INDEX}-alias/_doc -d ${body} >> /dev/null
+
+  fi
+}
+
 #############################
 # iterate over all devices  #
 #############################
@@ -101,7 +117,7 @@ iterateOverAllDevice() {
 
     id=`echo "${device}" | jq .id`
     type=`echo "${device}" | jq -r .type`
-    baseType=`echo "${device}" | jq  .baseType`
+    baseType=`echo "${device}" | jq -r .baseType`
     name=`echo "${device}" | jq  .name`
     value=`echo "${device}" | jq .properties.value`
     roomID=`echo "${device}" | jq .roomID`
@@ -111,6 +127,7 @@ iterateOverAllDevice() {
 
     collectClimate
     collectPower
+    collectThermostat
 
     i=$(( i + 1 ))
   done

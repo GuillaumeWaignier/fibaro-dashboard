@@ -139,6 +139,16 @@
     body_format: json
     body: "{{ lookup('template', 'template_event.json.j2') }}"
 
+- name: Put Template for Thermostat
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_thermostat }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_thermostat.json.j2') }}"
+
 - name: Get first index climate
   uri:
     method: GET
@@ -236,6 +246,38 @@
   changed_when: true
   when: >-
     elastic_index_resources.status == 404
+
+- name: Get first index thermostat
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_thermostat }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_thermostat
+  changed_when: false
+
+- name: Create fisrt index thermostat
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_thermostat }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_thermostat }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_thermostat.status == 404
 
 
 - name: Get first index event
