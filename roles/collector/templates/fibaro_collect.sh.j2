@@ -121,13 +121,17 @@ iterateOverAllDevice() {
     name=`echo "${device}" | jq  .name`
     value=`echo "${device}" | jq .properties.value`
     roomID=`echo "${device}" | jq .roomID`
+    visible=`echo "${device}" | jq .visible`
 
     # workaround: space produce crash during ES indexation (pb of charset ?)
     name=`echo "${name}" | sed -e "s/ /_/g"`
 
-    collectClimate
-    collectPower
-    collectThermostat
+    if [ "${visible}" = true ]
+    then
+        collectClimate
+        collectPower
+        collectThermostat
+    fi
 
     i=$(( i + 1 ))
   done
