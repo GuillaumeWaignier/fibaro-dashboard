@@ -1,0 +1,13 @@
+#!/bin/sh
+
+state=`curl -w "%{http_code}\n" -o /dev/null -s http://127.0.0.1:5000/cache/scene`
+server=$?
+
+if [ "$server" -eq 0 ] && [ "$state" = "200" ]
+then
+  exit 0
+else
+  exit 254
+fi
+
+exit 0

@@ -2,7 +2,21 @@
 # use Git Projet https://github.com/GuillaumeWaignier/ansible-raspberry-elasticsearch.git
 # to install Elasticsearch and kibana
 
-
+- hosts: all
+  vars_prompt:
+    - name: fibaro_password
+      prompt: fibaro password
+    - name: neo4j_password
+      prompt: Neo4j Password
+    - name: elasticsearch_password
+      prompt: elasticsearch Password
+  tasks:
+    - set_fact: fibaro_password={{ fibaro_password }}
+      no_log: true
+    - set_fact: neo4j_password={{ neo4j_password }}
+      no_log: true
+    - set_fact: elasticsearch_password={{ elasticsearch_password }}
+      no_log: true
 
 - name: Install metric collector
   hosts: collector
@@ -15,7 +29,18 @@
     - fibaro_login: "stats"
     - fibaro_url: "https://192.168.2.13"
     - kibana_url: "https://localhost:5601"
-    - elasticsearch_url: "https://localhost:9200"
+    - elasticsearch_url: "https://192.168.2.15:9200"
+    - elasticsearch_apm_url: "https://192.168.2.15:8200"
+
+
+- name: Install metric dashboard
+  hosts: collector
+  roles:
+    - role: dashboard
+      tags: dashboard
+  vars:
+    - kibana_url: "https://localhost:5601"
+    - elasticsearch_url: "https://192.168.2.15:9200"
     - elasticsearch_roll_size: "500mb"
     - elasticsearch_roll_date: "365d"
     - elasticsearch_delete_date: "10951d"
@@ -23,12 +48,4 @@
     - elasticsearch_events_roll_date: "365d"
     - elasticsearch_events_delete_date: "10951d"
 
-
-  vars_prompt:
-    - name: fibaro_password
-      prompt: fibaro password
-    - name: neo4j_password
-      prompt: Neo4j Password
-    - name: elasticsearch_password
-      prompt: elasticsearch Password
 ...

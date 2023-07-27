@@ -1,0 +1,20 @@
+---
+
+- name: restart fibaro collector
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: fibaro_collect.service
+  listen: restart_collector
+
+
+- name: Wait for fibaro collector to be OK
+  command: "{{ base_directory }}/fibaro/fibaro_collect-healthcheck.sh"
+  register: result
+  until: result.rc == 0
+  retries: 10
+  delay: 20
+  listen: restart_collector
+
+
+...

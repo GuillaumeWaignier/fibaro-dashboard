@@ -1,0 +1,301 @@
+---
+
+- name: Get ILM Policy
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username : "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_ilm
+  changed_when: false
+
+
+- name: Put ILM Policy
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index }}"
+    body_format: json
+    body: "{{ lookup('template', 'ilm_policy.json.j2') }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+  changed_when: true
+  when: >-
+    elastic_ilm.json.{{elasticsearch_index}} is not defined
+    or
+    elastic_ilm.json.{{elasticsearch_index}}.policy.phases.hot.actions.rollover.max_size != "{{elasticsearch_roll_size}}"
+    or
+    elastic_ilm.json.{{elasticsearch_index}}.policy.phases.hot.actions.rollover.max_age != "{{elasticsearch_roll_date}}"
+    or
+    elastic_ilm.json.{{elasticsearch_index}}.policy.phases.delete.min_age != "{{elasticsearch_delete_date}}"
+
+
+- name: Get ILM Policy for event
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index_events }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_ilm_event
+  changed_when: false
+
+
+- name: Put ILM Policy for event
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_ilm/policy/{{ elasticsearch_index_events }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'event_ilm_policy.json.j2') }}"
+  changed_when: true
+  when: >-
+    elastic_ilm_event.json.{{elasticsearch_index_events}} is not defined
+    or
+    elastic_ilm_event.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_size != "{{elasticsearch_events_roll_size}}"
+    or
+    elastic_ilm_event.json.{{elasticsearch_index_events}}.policy.phases.hot.actions.rollover.max_age != "{{elasticsearch_events_roll_date}}"
+    or
+    elastic_ilm_event.json.{{elasticsearch_index_events}}.policy.phases.delete.min_age != "{{elasticsearch_events_delete_date}}"
+
+
+- name: Put Template climate
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_climate.json.j2') }}"
+
+- name: Put Template power
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_power }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_power.json.j2') }}"
+
+- name: Put Template resources
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_resources }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_resources.json.j2') }}"
+
+- name: Put Template for events
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_events }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_event.json.j2') }}"
+
+- name: Put Template for Thermostat
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_thermostat }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_thermostat.json.j2') }}"
+
+- name: Get first index climate
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index
+  changed_when: false
+
+- name: Create fisrt index climate
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{elasticsearch_index}}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index.status == 404
+
+
+- name: Get first index power
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_power }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_power
+  changed_when: false
+
+- name: Create fisrt index power
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_power }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_power }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_power.status == 404
+
+
+- name: Get first index resources
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_resources }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_resources
+  changed_when: false
+
+- name: Create fisrt index resources
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_resources }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_resources }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_resources.status == 404
+
+- name: Get first index thermostat
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_thermostat }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_thermostat
+  changed_when: false
+
+- name: Create fisrt index thermostat
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_thermostat }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_thermostat }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_thermostat.status == 404
+
+
+- name: Get first index event
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_events }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_event
+  changed_when: false
+
+- name: Create fisrt index event
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_events }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_events }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_event.status == 404
+
+
+- name: Upload kibana dashboard
+  uri:
+    method: POST
+    url: "{{ kibana_url }}/api/saved_objects/_import"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    force_basic_auth: yes
+    body_format: form-multipart
+    headers:
+      kbn-xsrf: "true"
+    body:
+      file:
+        content: "{{ lookup('template', './kibana.ndjson.j2') }}"
+        filename: kibana.ndjson
+        mime_type: text/plain
+  changed_when: false
+
+...

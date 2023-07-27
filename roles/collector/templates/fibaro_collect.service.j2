@@ -1,0 +1,16 @@
+[Unit]
+Description=Collector web service for fibaro
+After=network.target
+
+[Service]
+ExecStart=gunicorn --workers 2 --bind 127.0.0.1:5000 fibaro_collect:app
+Type=simple
+User={{ user }}
+Group={{ group }}
+WorkingDirectory={{ base_directory }}/fibaro
+Restart=on-failure
+RestartSec=10s
+StartLimitBurst=12
+
+[Install]
+WantedBy=multi-user.target
