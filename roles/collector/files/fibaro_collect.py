@@ -1,10 +1,13 @@
-from flask import Flask
+from flask import Flask, abort
 from datetime import datetime
 import requests
 import configparser
+import logging
 from elasticapm.contrib.flask import ElasticAPM
+from elasticapm.handlers.logging import LoggingHandler
+import elasticapm
 from elasticsearch import Elasticsearch
-
+from py2neo import Graph, Node
 
 app = Flask(__name__)
 
@@ -16,10 +19,17 @@ config.read("config.ini")
 FIBARO_LOGIN = config.get('App', 'FIBARO_LOGIN')
 FIBARO_PASSWORD = config.get('App', 'FIBARO_PASSWORD')
 FIBARO_URL = config.get('App', 'FIBARO_URL')
+
 ELASTICSEARCH_LOGIN = config.get('App', 'ELASTICSEARCH_LOGIN')
 ELASTICSEARCH_PASSWORD = config.get('App', 'ELASTICSEARCH_PASSWORD')
 ELASTICSEARCH_URL = config.get('App', 'ELASTICSEARCH_URL')
 APM_URL = config.get('App', 'APM_URL')
+
+NEO4J_LOGIN = config.get('App', 'NEO4J_LOGIN')
+NEO4J_PASSWORD = config.get('App', 'NEO4J_PASSWORD')
+NEO4J_URL = config.get('App', 'NEO4J_URL')
+NEO4J_DB = config.get('App', 'NEO4J_DB')
+
 EVENTS_INDEX = config.get('App', 'EVENTS_INDEX')
 CLIMATE_INDEX = config.get('App', 'CLIMATE_INDEX')
 POWER_INDEX = config.get('App', 'POWER_INDEX')
@@ -33,6 +43,10 @@ app.config['ELASTIC_APM'] = {
 }
 apm = ElasticAPM(app)
 
+# Logging
+handler = LoggingHandler(client=apm.client)
+handler.setLevel(logging.INFO)
+app.logger.addHandler(handler)
 
 
 # Define the device type mapping
@@ -79,6 +93,7 @@ LAST_DATE = None
 
 
 es = Elasticsearch([ELASTICSEARCH_URL], basic_auth=(ELASTICSEARCH_LOGIN, ELASTICSEARCH_PASSWORD))
+neo4j = Graph(NEO4J_URL, auth=(NEO4J_LOGIN, NEO4J_PASSWORD), name=NEO4J_DB)
 
 ## ROOM
 def get_all_rooms():
@@ -92,7 +107,6 @@ def get_all_rooms():
 ####################################
 
 def cache_all_device():
-    print("Cache all devices")
     get_all_rooms()
     devices = requests.get(f'{FIBARO_URL}/api/devices', auth=(FIBARO_LOGIN, FIBARO_PASSWORD), verify=False).json()
     device_number = len(devices)
@@ -109,7 +123,6 @@ def cache_all_device():
     return device_number
 
 def cache_all_scene():
-    print("Cache all scenes")
     scenes = requests.get(f'{FIBARO_URL}/api/scenes', auth=(FIBARO_LOGIN, FIBARO_PASSWORD), verify=False).json()
     scene_number = len(scenes)
     cached_scenes.clear()
@@ -326,6 +339,107 @@ def collect_hc3_resources():
         es.index(index=f'{RESOURCES_INDEX}-alias', document=cpu_body)
 
 
+####################################
+#                                  #
+#          NEO4J                   #
+#                                  #
+####################################
+
+
+def clear_neo4j():
+    with elasticapm.capture_span(f"Neo4j Clear database", "db.neo4j"):
+        neo4j.run("MATCH ()-[r]->() DELETE r")
+        neo4j.run("MATCH (n) DELETE n")
+
+
+
+def create_box():
+    node_data = {
+        "Name": "Home Center 3",
+        "zwaveCompany": "Fibargroup",
+        "Id": 1
+    }
+
+    with elasticapm.capture_span(f"Neo4j Create Node {node_data['Name']}", "db.neo4j"):
+        node = Node("box", **node_data)
+        neo4j.create(node)
+
+
+def create_nodes(devices):
+    global rooms
+
+    for device in devices:
+
+        type_ = device.get("type")
+
+        if type_ == "com.fibaro.zwaveDevice":
+            id_ = device.get("id")
+            roomID = device.get("roomID")
+            room = next((r["name"] for r in rooms if r["id"] == roomID), None)
+            info = device.get("properties", {}).get("zwaveInfo")
+            type_ = info.split(",")[0]
+            zwaveVersionMajor, zwaveVersionMinor = map(int, info.split(",")[1:3])
+            zwaveVersion = f"{zwaveVersionMajor}.{zwaveVersionMinor}"
+
+            node_data = {
+                "Name": device.get("name"),
+                "securityLevel": device.get("properties", {}).get("securityLevel"),
+                "wakeupTime": device.get("properties", {}).get("wakeUpTime"),
+                "zwaveVersion": float(zwaveVersion),
+                "type": type_,
+                "version": float(device.get("properties", {}).get("zwaveVersion")),
+                "battery": device.get("properties", {}).get("batteryLevel"),
+                "zwaveCompany": device.get("properties", {}).get("zwaveCompany"),
+                "Id": id_
+            }
+
+            with elasticapm.capture_span(f"Neo4j Create Node {node_data['Name']}", "db.neo4j"):
+                node = Node(room, **node_data)
+                neo4j.create(node)
+
+
+def create_links(devices):
+    failed = False
+
+    hop_count = {}
+
+    for device in devices:
+
+        if device.get("type") == "com.fibaro.zwaveDevice":
+            last_working_route = device.get("properties", {}).get("lastWorkingRoute")
+            number_hop = len(last_working_route)
+
+            if number_hop not in hop_count:
+                hop_count[number_hop] = 1
+            else:
+                hop_count[number_hop] += 1
+
+            start = str(device['id'])
+            for j in range(number_hop - 1, -1, -1):
+
+                end = str(last_working_route[j])
+
+                with elasticapm.capture_span(f"Neo4j Create link between nodes {start} and {end}", "db.neo4j"):
+                    cypher_query = f"MATCH (a), (b) WHERE a.Id = {start} AND b.Id = {end} CREATE (a)-[r:hop_{number_hop} {{deviceId: {device['id']}}}] -> (b) RETURN type(r)"
+                    result = neo4j.run(cypher_query)
+                    link_created = False
+                    for record in result:
+                        link_type = record["type(r)"]
+                        if link_type == f"hop_{number_hop}":
+                            link_created = True
+                            break
+
+                    if not link_created:
+                        apm.capture_message(message=f"Failed to create link between nodes {start} and {end}", level="error")
+                        failed = True
+
+                start = end
+
+
+    print(hop_count)
+    app.logger.warning(f'Level if hop : {hop_count}')
+    return failed
+
 
 ####################################
 #                                  #
@@ -349,6 +463,17 @@ def index_iot():
 def index_resource():
     collect_hc3_resources()
     return f'Indexed resources'
+
+@app.route("/index/neo4j")
+def index_neo4j():
+    clear_neo4j()
+    create_box()
+    devices = requests.get(f"{FIBARO_URL}/api/devices", auth=(FIBARO_LOGIN, FIBARO_PASSWORD), verify=False).json()
+    create_nodes(devices)
+    failed = create_links(devices)
+    if failed:
+        abort(500)
+    return f'Indexed neo4j graph'
 
 @app.route("/cache/device")
 def cache_device():

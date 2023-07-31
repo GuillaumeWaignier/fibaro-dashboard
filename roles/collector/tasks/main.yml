@@ -49,6 +49,10 @@
   ansible.builtin.pip:
     name: gunicorn
 
+- name: Install py2neo python package for neo4j
+  ansible.builtin.pip:
+    name: py2neo
+
 - name: Configure for fibaro script
   template:
     src: templates/{{ item }}.j2
@@ -88,23 +92,6 @@
     enabled: yes
     daemon_reload: yes
     name: fibaro_collect.service
-
-- name: Add crontab entry for collector
-  cron:
-    name: "fibaro_collect"
-    minute: "{{ cronMinute }}"
-    state: "present"
-    user: "{{ user }}"
-    job: "{{ base_directory }}/fibaro/fibaro_collect.sh >> {{ base_directory }}/fibaro/error.log 2>&1"
-
-- name: Add crontab entry for event collector
-  cron:
-    name: "fibaro_collect_event"
-    minute: "{{ cronMinuteEvent }}"
-    state: "present"
-    user: "{{ user }}"
-    job: "{{ base_directory }}/fibaro/fibaro_collect_events.sh >> {{ base_directory }}/fibaro/error.log 2>&1"
-
 
 - name: Add crontab entry for collector iot
   cron:
@@ -149,4 +136,13 @@
     user: "{{ user }}"
     job: "curl http://127.0.0.1:5000/cache/device"
 
+
+- name: Add crontab for computing graph
+  cron:
+    name: "fibaro_collect_neo4j"
+    minute: "4"
+    hour: "0"
+    state: "present"
+    user: "{{ user }}"
+    job: "curl http://127.0.0.1:5000/index/neo4j"
 ...
