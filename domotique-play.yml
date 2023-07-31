@@ -31,6 +31,7 @@
     - kibana_url: "https://localhost:5601"
     - elasticsearch_url: "https://192.168.2.15:9200"
     - elasticsearch_apm_url: "https://192.168.2.15:8200"
+    - neo4j_url: "neo4j://192.168.2.15:7687"
 
 
 - name: Install metric dashboard
