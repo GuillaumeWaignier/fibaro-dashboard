@@ -61,9 +61,6 @@
     group: "{{group}}"
     mode: 0700
   with_items:
-    - fibaro_collect.sh
-    - fibaro_zwave_graph.sh
-    - fibaro_collect_events.sh
     - config.ini
     - fibaro_collect-healthcheck.sh
   notify: restart_collector
