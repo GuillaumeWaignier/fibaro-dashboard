@@ -116,6 +116,16 @@
     body_format: json
     body: "{{ lookup('template', 'template_thermostat.json.j2') }}"
 
+- name: Put Template zwave
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/_index_template/{{ elasticsearch_index_zwave }}"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: "{{ lookup('template', 'template_zwave.json.j2') }}"
+
 - name: Get first index climate
   uri:
     method: GET
@@ -278,6 +288,39 @@
   changed_when: true
   when: >-
     elastic_index_event.status == 404
+
+
+- name: Get first index zwave
+  uri:
+    method: GET
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_zwave }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    return_content: yes
+  failed_when: false
+  register: elastic_index_zwave
+  changed_when: false
+
+- name: Create fisrt index resources
+  uri:
+    method: PUT
+    url: "{{ elasticsearch_url }}/{{ elasticsearch_index_zwave }}-000001"
+    validate_certs: no
+    url_password: "{{ elasticsearch_password }}"
+    url_username: "{{ elasticsearch_login }}"
+    body_format: json
+    body: >-
+      {
+        "aliases": {
+          "{{ elasticsearch_index_zwave }}-alias":{
+            "is_write_index": true
+          }
+        }
+      }
+  changed_when: true
+  when: >-
+    elastic_index_zwave.status == 404
 
 
 - name: Upload kibana dashboard

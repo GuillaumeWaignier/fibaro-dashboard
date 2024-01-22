@@ -1,0 +1,62 @@
+{
+  "index_patterns": ["{{elasticsearch_index_zwave}}*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas":0,
+      "refresh_interval":"60s",
+      "index.lifecycle.name": "{{elasticsearch_index}}",
+      "index.lifecycle.rollover_alias": "{{elasticsearch_index_zwave}}-alias"
+    },
+    "mappings": {
+      "properties" : {
+        "@timestamp" : {
+          "type" : "date"
+        },
+        "nodeId" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "deviceName" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "room" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "deviceType" : {
+          "type" : "keyword",
+          "ignore_above" : 256
+        },
+        "incomingFailedCrc" : {
+          "type" : "integer"
+        },
+        "incomingFailedDecryption" : {
+          "type" : "integer"
+        },
+        "incomingNonceGet" : {
+          "type" : "integer"
+        },
+        "incomingNonceReport" : {
+          "type" : "integer"
+        },
+        "incomingTimedOutNonce" : {
+          "type" : "integer"
+        },
+        "incomingTotal" : {
+          "type" : "integer"
+        },
+        "outgoingFailed" : {
+          "type" : "integer"
+        },
+        "outgoingNonceGet" : {
+          "type" : "integer"
+        },
+        "outgoingTotal" : {
+          "type" : "integer"
+        }
+      }
+    }
+  }
+}

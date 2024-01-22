@@ -35,6 +35,7 @@ CLIMATE_INDEX = config.get('App', 'CLIMATE_INDEX')
 POWER_INDEX = config.get('App', 'POWER_INDEX')
 RESOURCES_INDEX = config.get('App', 'RESOURCES_INDEX')
 THERMOSTAT_INDEX = config.get('App', 'THERMOSTAT_INDEX')
+ZWAVE_INDEX = config.get('App', 'ZWAVE_INDEX')
 
 # APM
 app.config['ELASTIC_APM'] = {
@@ -109,18 +110,18 @@ def get_all_rooms():
 def cache_all_device():
     get_all_rooms()
     devices = requests.get(f'{FIBARO_URL}/api/devices', auth=(FIBARO_LOGIN, FIBARO_PASSWORD), verify=False).json()
-    device_number = len(devices)
     cached_devices.clear()
-    for i in range(device_number):
-        device = devices[i]
-        id = device['id']
-        name = device['name'].replace(' ', '_')  # workaround: space produce crash during ES ation (pb of charset ?)
+    for device in devices:
+        data = {}
+        data['id'] = device['id']
+        data['name'] = device['name'].replace(' ', '_')  # workaround: space produce crash during ES ation (pb of charset ?)
         roomID = device['roomID']
         type = device['type']
-        type = device_type_mapping.get(type, type)
-        room = next((r['name'] for r in rooms if r['id'] == roomID), None)
-        cached_devices.append({"id": id, "name": name, "room": room, "type": type})
-    return device_number
+        data['type'] = device_type_mapping.get(type, type)
+        data['room'] = next((r['name'] for r in rooms if r['id'] == roomID), None)
+        data['nodeId'] = device.get("properties", {}).get("nodeId", None)
+        cached_devices.append(data)
+    return len(cached_devices)
 
 def cache_all_scene():
     scenes = requests.get(f'{FIBARO_URL}/api/scenes', auth=(FIBARO_LOGIN, FIBARO_PASSWORD), verify=False).json()
@@ -337,6 +338,31 @@ def collect_hc3_resources():
             "idle": cpu.get('idle')
         }
         es.index(index=f'{RESOURCES_INDEX}-alias', document=cpu_body)
+
+
+    zwave_data = requests.get(f"{FIBARO_URL}/api/apps/com.fibaro.zwave/diagnostics/transmissions", auth=(FIBARO_LOGIN, FIBARO_PASSWORD), verify=False).json()
+    nodes = zwave_data.get('items', [])
+    for node in nodes:
+        zwave_body = {
+            "@timestamp": now,
+            "incomingFailedCrc": node.get('incomingFailedCrc'),
+            "incomingFailedDecryption": node.get('incomingFailedDecryption'),
+            "incomingNonceGet": node.get('incomingNonceGet'),
+            "incomingNonceReport": node.get('incomingNonceReport'),
+            "incomingTimedOutNonce": node.get('incomingTimedOutNonce'),
+            "incomingTotal": node.get('incomingTotal'),
+            "nodeId": node.get('nodeId'),
+            "outgoingFailed": node.get('outgoingFailed'),
+            "outgoingNonceGet": node.get('outgoingNonceGet'),
+            "outgoingTotal": node.get('outgoingTotal')
+        }
+        metainfo = next((device for device in cached_devices if device['nodeId'] == node.get('nodeId')), None)
+        if metainfo:
+            zwave_body['deviceName'] = metainfo['name']
+            zwave_body['room'] = metainfo['room']
+            zwave_body['deviceType'] = metainfo['type']
+        es.index(index=f'{ZWAVE_INDEX}-alias', document=zwave_body)
+
 
 
 ####################################

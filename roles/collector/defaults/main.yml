@@ -20,6 +20,7 @@ elasticsearch_index_power: "hc3_fibaro_power"
 elasticsearch_index_resources: "hc3_fibaro_resources"
 elasticsearch_index_events: "hc3_fibaro_events"
 elasticsearch_index_thermostat: "hc3_fibaro_thermostat"
+elasticsearch_index_zwave: "hc3_fibaro_zwave"
 
 neo4j_url: "http://localhost:7474"
 neo4j_user: "neo4j"
