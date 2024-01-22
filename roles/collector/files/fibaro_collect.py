@@ -390,7 +390,8 @@ def create_nodes(devices):
                 "version": float(device.get("properties", {}).get("zwaveVersion")),
                 "battery": device.get("properties", {}).get("batteryLevel"),
                 "zwaveCompany": device.get("properties", {}).get("zwaveCompany"),
-                "Id": id_
+                "Id": id_,
+                "nodeId" : device.get("properties", {}).get("nodeId")
             }
 
             with elasticapm.capture_span(f"Neo4j Create Node {node_data['Name']}", "db.neo4j"):
